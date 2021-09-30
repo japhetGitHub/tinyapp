@@ -32,12 +32,16 @@ app.get('/', (req, res) => {
 // });
 
 app.get('/urls', (req, res) => { // My URLs route
-  const templateVars = { urls: urlDatabase }
+  const templateVars = { 
+    username: req.cookies['username'],
+    urls: urlDatabase 
+  }
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  res.render("urls_new");
+  const templateVars = { username: req.cookies['username'] };
+  res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
@@ -49,6 +53,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual URL summary page route
   const templateVars = { 
+    username: req.cookies['username'],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
