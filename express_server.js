@@ -18,13 +18,13 @@ const urlDatabase = {
 };
 
 //HELPER FUNCTIONS
-function generateRandomString() {
+const generateRandomString = function() {
   return Math.random().toString(36).substring(2,8);
-}
+};
 
 // TINY APP ROUTES
 app.get('/', (req, res) => {
-  res.redirect('/urls')
+  res.redirect('/urls');
 });
 
 // app.get('/urls.json', (req, res) => {
@@ -32,10 +32,10 @@ app.get('/', (req, res) => {
 // });
 
 app.get('/urls', (req, res) => { // My URLs route
-  const templateVars = { 
+  const templateVars = {
     username: req.cookies['username'],
-    urls: urlDatabase 
-  }
+    urls: urlDatabase
+  };
   res.render('urls_index', templateVars);
 });
 
@@ -47,12 +47,11 @@ app.get("/urls/new", (req, res) => { // Create New URL page route
 app.post("/urls", (req, res) => { // Create New URL form submit route
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
-  console.log(req.body);  // Log the POST request body to the console
-  res.redirect(`/urls/${shortURL}`)
+  res.redirect(`/urls/${shortURL}`);
 });
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual URL summary page route
-  const templateVars = { 
+  const templateVars = {
     username: req.cookies['username'],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
@@ -67,7 +66,7 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
 
 app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
   delete urlDatabase[req.params.shortURL];
-  res.redirect('/urls')
+  res.redirect('/urls');
 });
 
 app.get("/u/:shortURL", (req, res) => { // URL redirect

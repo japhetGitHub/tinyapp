@@ -12,15 +12,15 @@
       <% if (username) { %>
         <form class="form-inline ml-auto" method="POST" action="/logout">
           <div class="form-group row">
-            <label class="mx-auto col-form-label text-light"><%= username %></label>
-            <button type="submit" class="mx-2 btn btn-primary">Logout</button>
+            <label class="mx-auto col-form-label text-light">Logged In As: <%= username %>!</label>
+            <button type="submit" class="mx-2 btn btn-outline-dark">Logout</button>
           </div>
         </form>
         <% } else {%> 
         <form class="form-inline ml-auto" method="POST" action="/login">
           <div class="form-group row">
-            <input class="col-auto form-control" type="text" name="username" id="username" placeholder="enter username here" style="width: 300px;">
-            <button type="submit" class="col-auto btn btn-primary">Submit</button>
+            <input class="mx-auto form-control" type="text" name="username" placeholder="Username" style="width: 200px;">
+            <button type="submit" class="mx-2 btn btn-outline-dark">Submit</button>
           </div>
         </form>
         <% } %> 
