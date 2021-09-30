@@ -9,13 +9,21 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
-      <form class="form-inline ml-auto" method="POST" action="/login">
-        <div class="form-group row">
-          <label class="col-auto col-form-label-lg" for="username"><%= username %></label>
-          <input class="col-auto form-control" type="text" name="username" id="username" placeholder="enter username here" style="width: 300px;">
-          <button type="submit" class="col-auto btn btn-primary">Submit</button>
-        </div>
-      </form>
+      <% if (username) { %>
+        <form class="form-inline ml-auto" method="POST" action="/logout">
+          <div class="form-group row">
+            <label class="mx-auto col-form-label text-light"><%= username %></label>
+            <button type="submit" class="mx-2 btn btn-primary">Logout</button>
+          </div>
+        </form>
+        <% } else {%> 
+        <form class="form-inline ml-auto" method="POST" action="/login">
+          <div class="form-group row">
+            <input class="col-auto form-control" type="text" name="username" id="username" placeholder="enter username here" style="width: 300px;">
+            <button type="submit" class="col-auto btn btn-primary">Submit</button>
+          </div>
+        </form>
+        <% } %> 
     </div>
   </nav>
 </header>
