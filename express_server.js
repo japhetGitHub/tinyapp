@@ -32,7 +32,11 @@ app.get('/hello', (req, res) => {
 // TINY APP ROUTES
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
+  if (longURL) {
+    res.redirect(longURL);
+  } else {
+    res.redirect('/urls');
+  }
 });
 
 app.get('/urls', (req, res) => {
