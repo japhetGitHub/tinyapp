@@ -51,7 +51,7 @@ const checkEmailRegistered = function(email) {
   }
   return false;
 };
-const getURLsByID = function(id) {
+const urlsForUser = function(id) {
   let userURLs = {};
   for (url in urlDatabase) {
     if (urlDatabase[url].userID === id) {
@@ -60,10 +60,30 @@ const getURLsByID = function(id) {
   }
   return userURLs;
 };
+const getErrorVars = function(code, ...options) {
+  let message = '';
+  if(code === 403) {
+    message = 'Forbidden';
+  } else if (code === 400) {
+    message = 'Bad Request';
+  } else {
+    message = 'Not Found';
+  }
+  return { 
+    user: undefined,
+    code: code,
+    error_message: message,
+    error_options: options
+  };
+};
 
 // TINY APP ROUTES
 app.get('/', (req, res) => {
-  res.redirect('/urls');
+  if (!req.cookies['user_id']) {
+    res.redirect('/login');
+  } else {
+    res.redirect('/urls');
+  }
 });
 
 // app.get('/urls.json', (req, res) => {
@@ -71,25 +91,36 @@ app.get('/', (req, res) => {
 // });
 
 app.get('/urls', (req, res) => { // My URLs route
-  const templateVars = {
-    user: users[req.cookies['user_id']],
-    urls: getURLsByID(req.cookies['user_id'])
-  };
-  res.render('urls_index', templateVars);
+  if (!req.cookies['user_id']) {
+    const templateVars = getErrorVars(403, 'Login', 'Register');
+    res.render('urls_index', templateVars);
+  } else {
+    const templateVars = {
+      user: users[req.cookies['user_id']],
+      urls: urlsForUser(req.cookies['user_id']),
+      code: 200
+    };
+    res.render('urls_index', templateVars);
+  }
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
   if (!req.cookies['user_id']) {
-    res.redirect(403, '/login');
+    const templateVars = getErrorVars(403, 'Login');
+    res.render('urls_new', templateVars);
   } else {
-    const templateVars = { user: users[req.cookies['user_id']] };
+    const templateVars = { 
+      user: users[req.cookies['user_id']],
+      code: 200
+    };
     res.render("urls_new", templateVars);
   }
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
   if (!req.cookies['user_id']) {
-    res.redirect(403, '/login');
+    const templateVars = getErrorVars(403, 'Login');
+    res.render('urls_new', templateVars);
   } else {
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = {
@@ -102,16 +133,22 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
   if (!req.cookies['user_id']) { //if not logged in user can't get shortURL info
-    res.redirect(403, '/login');
-  } else if (Object.keys(getURLsByID(req.cookies['user_id'])).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
+    const templateVars = getErrorVars(403, 'Login', 'Register');
+    res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
+    // res.redirect(403, '/login');
+  } else if (Object.keys(urlsForUser(req.cookies['user_id'])).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
       user: users[req.cookies['user_id']],
       shortURL: req.params.shortURL,
-      longURL: urlDatabase[req.params.shortURL].longURL
+      longURL: urlDatabase[req.params.shortURL].longURL,
+      code: 200
     };
     res.render('urls_show', templateVars);
   } else { //redirects to url list if user tried to access a short URL info page that didn't exist or they didn't have access to
-    res.redirect('/urls');
+    const templateVars = getErrorVars(403, 'URL Does Not Belong to You', "URLs");
+    templateVars.user = users[req.cookies['user_id']]; // user is technically logged in but just forbidden access 
+    res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
+    // res.redirect('/urls');
   }
 });
 
@@ -143,7 +180,8 @@ app.get('/login', (req, res) => {
     res.redirect('/urls');
   } else {
     const templateVars = {
-      user: undefined //undefined when no user_id cookie exists and login form is requested
+      user: undefined, //undefined when no user_id cookie exists and login form is requested
+      code: 200
     };
     res.render('login', templateVars);
   }
@@ -153,10 +191,14 @@ app.post('/login', (req, res) => { //receives login form input
   const userCheck = checkEmailRegistered(req.body.email); //returns user object or false
   if (!userCheck) { //user not found
     // console.log('user not found.');
-    res.redirect(403, '/login');
+    const templateVars = getErrorVars(403, 'User Not Found', 'Login');
+    res.render('login', templateVars); //better UX than explicit 403 redirect call
+    // res.redirect(403, '/login');
   } else if (userCheck.password !== req.body.password) { //incorrect password
     // console.log('incorrect password.');
-    res.redirect(403, '/login');
+    const templateVars = getErrorVars(403, 'Incorrect Password', 'Login');
+    res.render('login', templateVars); //better UX than explicit 403 redirect call
+    // res.redirect(403, '/login');
   } else { //successful login
     // console.log('login successful. user:', userCheck);
     res.cookie('user_id', userCheck.id);
@@ -166,7 +208,7 @@ app.post('/login', (req, res) => { //receives login form input
 
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
-  res.redirect('/urls');
+  res.redirect('/');
 });
 
 app.get('/register', (req, res) => {
@@ -174,7 +216,8 @@ app.get('/register', (req, res) => {
     res.redirect('/urls');
   } else {
     const templateVars = {
-      user: undefined //undefined when no user_id cookie exists and registration form is requested
+      user: undefined, //undefined when no user_id cookie exists and registration form is requested
+      code: 200
     };
     res.render('registration', templateVars);
   }
@@ -182,11 +225,15 @@ app.get('/register', (req, res) => {
 
 app.post('/register', (req, res) => { //receives registration form input
   if (req.body.email === '' || req.body.password === '') {
-    console.log('Empty fields.');
-    res.redirect(400, '/register');
+    // console.log('Empty fields.');
+    const templateVars = getErrorVars(400, 'Empty Fields', 'Register');
+    res.render('registration', templateVars); //better UX than explicit 403 redirect call
+    // res.redirect(400, '/register');
   } else if (checkEmailRegistered(req.body.email)) {
-    console.log('Email Exists.');
-    res.redirect(400, '/register');
+    // console.log('Email Exists.');
+    const templateVars = getErrorVars(400, 'Email Already Registered', 'Register');
+    res.render('registration', templateVars); //better UX than explicit 403 redirect call
+    // res.redirect(400, '/register');
   } else {
     const id = generateRandomString();
     users[id] = {
