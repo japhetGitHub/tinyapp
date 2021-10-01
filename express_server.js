@@ -231,7 +231,7 @@ app.post('/register', (req, res) => { //receives registration form input
     // res.redirect(400, '/register');
   } else if (checkEmailRegistered(req.body.email)) {
     // console.log('Email Exists.');
-    const templateVars = getErrorVars(400, 'Email Already Registered', 'Register');
+    const templateVars = getErrorVars(400, 'Email Already Registered', 'Login');
     res.render('registration', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(400, '/register');
   } else {
