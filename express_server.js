@@ -100,10 +100,14 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
 });
 
 app.get('/login', (req, res) => {
-  const templateVars = {
-    user: undefined //undefined because user is not logged in if at registration form (also so that header partial will still work)
-  };
-  res.render('login', templateVars);
+  if (req.cookies['user_id']) {
+    res.redirect('/urls');
+  } else {
+    const templateVars = {
+      user: undefined //undefined when no user_id cookie exists and login form is requested
+    };
+    res.render('login', templateVars);
+  }
 });
 
 app.post('/login', (req, res) => { //receives login form input
@@ -127,10 +131,14 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  const templateVars = {
-    user: undefined //undefined because user is not logged in if at registration form (also so that header partial will still work)
-  };
-  res.render('registration', templateVars);
+  if (req.cookies['user_id']) {
+    res.redirect('/urls');
+  } else {
+    const templateVars = {
+      user: undefined //undefined when no user_id cookie exists and registration form is requested
+    };
+    res.render('registration', templateVars);
+  }
 });
 
 app.post('/register', (req, res) => { //receives registration form input
