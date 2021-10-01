@@ -100,17 +100,23 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
   }
 });
 
-app.get('/urls/:shortURL', (req, res) => { // Show individual URL summary page route
-  const templateVars = {
-    user: users[req.cookies['user_id']],
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL]
-  };
-  res.render('urls_show', templateVars);
+app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
+  if (!req.cookies['user_id']) { //if not logged in user can't get shortURL info
+    res.redirect(403, '/login');
+  } else if (Object.prototype.hasOwnProperty.call(getURLsByID(req.cookies['user_id']), req.params.shortURL)) { //checks if requested shortURL was made by this user
+    const templateVars = {
+      user: users[req.cookies['user_id']],
+      shortURL: req.params.shortURL,
+      longURL: urlDatabase[req.params.shortURL].longURL
+    };
+    res.render('urls_show', templateVars);
+  } else { //redirects to url list if user tried to access a short URL info page that didn't exist or they didn't have access to
+    res.redirect('/urls');
+  }
 });
 
 app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
-  urlDatabase[req.params.shortURL] = req.body.longURL;
+  urlDatabase[req.params.shortURL].longURL = req.body.longURL;
   res.redirect('/urls');
 });
 
