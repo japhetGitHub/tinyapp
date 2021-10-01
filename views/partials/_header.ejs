@@ -12,7 +12,7 @@
       <% if (user) { %>
         <form class="form-inline ml-auto" method="POST" action="/logout">
           <div class="form-group row">
-            <label class="mx-auto col-form-label text-light">Logged In As: <%= user.email %>!</label>
+            <label class="mx-auto col-form-label">Logged In As: <%= user.email %>!</label>
             <button type="submit" class="mx-2 btn btn-outline-dark">Logout</button>
           </div>
         </form>
