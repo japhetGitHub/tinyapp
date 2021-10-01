@@ -17,12 +17,16 @@
           </div>
         </form>
         <% } else {%> 
-        <form class="form-inline ml-auto" method="POST" action="/login">
-          <div class="form-group row">
-            <input class="mx-auto form-control" type="text" name="username" placeholder="Username" style="width: 200px;">
-            <button type="submit" class="mx-2 btn btn-outline-dark">Submit</button>
-          </div>
-        </form>
+          <form class="form-inline ml-auto" method="GET" action="/login">
+            <div class="form-group">
+              <button type="submit" class="mx-2 btn btn-outline-dark">Login</button>
+            </div>
+          </form>
+          <form class="form-inline" method="GET" action="/register">
+            <div class="form-group">
+              <button type="submit" class="mx-2 btn btn-outline-dark">Register</button>
+            </div>
+          </form>
         <% } %> 
     </div>
   </nav>
