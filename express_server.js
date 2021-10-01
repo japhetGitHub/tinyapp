@@ -103,7 +103,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
   if (!req.cookies['user_id']) { //if not logged in user can't get shortURL info
     res.redirect(403, '/login');
-  } else if (Object.prototype.hasOwnProperty.call(getURLsByID(req.cookies['user_id']), req.params.shortURL)) { //checks if requested shortURL was made by this user
+  } else if (Object.keys(getURLsByID(req.cookies['user_id'])).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
       user: users[req.cookies['user_id']],
       shortURL: req.params.shortURL,
@@ -126,11 +126,15 @@ app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
 });
 
 app.get("/u/:shortURL", (req, res) => { // URL redirect
-  const longURL = urlDatabase[req.params.shortURL].longURL;
-  if (longURL) {
-    res.redirect(longURL);
+  if (Object.keys(urlDatabase).includes(req.params.shortURL)) {
+    const longURL = urlDatabase[req.params.shortURL].longURL;
+    if (longURL) {
+      res.redirect(longURL);
+    } else {
+      res.redirect('/urls');
+    }
   } else {
-    res.redirect('/urls');
+    res.redirect('/login');
   }
 });
 
