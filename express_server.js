@@ -61,14 +61,22 @@ app.get('/urls', (req, res) => { // My URLs route
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  const templateVars = { user: users[req.cookies['user_id']] };
-  res.render("urls_new", templateVars);
+  if (!req.cookies['user_id']) {
+    res.redirect(403, '/login');
+  } else {
+    const templateVars = { user: users[req.cookies['user_id']] };
+    res.render("urls_new", templateVars);
+  }
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`);
+  if (!req.cookies['user_id']) {
+    res.redirect(403, '/login');
+  } else {
+    const shortURL = generateRandomString();
+    urlDatabase[shortURL] = req.body.longURL;
+    res.redirect(`/urls/${shortURL}`);
+  }
 });
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual URL summary page route
@@ -143,7 +151,7 @@ app.get('/register', (req, res) => {
 
 app.post('/register', (req, res) => { //receives registration form input
   if (req.body.email === '' || req.body.password === '') {
-    // console.log('Empty fields.');
+    console.log('Empty fields.');
     res.redirect(400, '/register');
   } else if (checkEmailRegistered(req.body.email)) {
     console.log('Email Exists.');
@@ -163,5 +171,5 @@ app.post('/register', (req, res) => { //receives registration form input
 
 //LISTEN FOR REQUESTS
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`TinyURL app listening on port ${PORT}!`);
 });
