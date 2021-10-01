@@ -37,7 +37,7 @@ const generateRandomString = function() {
 const checkEmailRegistered = function(email) {
   for (const user in users) {
     if (users[user].email === email) {
-      return true;
+      return users[user];
     }
   }
   return false;
@@ -106,9 +106,19 @@ app.get('/login', (req, res) => {
   res.render('login', templateVars);
 });
 
-app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+app.post('/login', (req, res) => { //receives login form input
+  const userCheck = checkEmailRegistered(req.body.email); //returns user object or false
+  if (!userCheck) { //user not found
+    // console.log('user not found.');
+    res.redirect(403, '/login');
+  } else if (userCheck.password !== req.body.password) { //incorrect password
+    // console.log('incorrect password.');
+    res.redirect(403, '/login');
+  } else { //successful login
+    // console.log('login successful. user:', userCheck);
+    res.cookie('user_id', userCheck.id);
+    res.redirect('/urls');
+  }
 });
 
 app.post('/logout', (req, res) => {
@@ -123,12 +133,12 @@ app.get('/register', (req, res) => {
   res.render('registration', templateVars);
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', (req, res) => { //receives registration form input
   if (req.body.email === '' || req.body.password === '') {
     // console.log('Empty fields.');
     res.redirect(400, '/register');
   } else if (checkEmailRegistered(req.body.email)) {
-    // console.log('Email Exists.');
+    console.log('Email Exists.');
     res.redirect(400, '/register');
   } else {
     const id = generateRandomString();
