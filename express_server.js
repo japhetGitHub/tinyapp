@@ -99,6 +99,13 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
   }
 });
 
+app.get('/login', (req, res) => {
+  const templateVars = {
+    user: undefined //undefined because user is not logged in if at registration form (also so that header partial will still work)
+  };
+  res.render('login', templateVars);
+});
+
 app.post('/login', (req, res) => {
   res.cookie('username', req.body.username);
   res.redirect('/urls');
@@ -115,8 +122,6 @@ app.get('/register', (req, res) => {
   };
   res.render('registration', templateVars);
 });
-
-
 
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
