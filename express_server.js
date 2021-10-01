@@ -11,10 +11,22 @@ app.use(cookieParser());
 //TEMPLATE ENGINE
 app.set('view engine', 'ejs');
 
-//DATABASE
+//DATA STORE
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
+};
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
 };
 
 //HELPER FUNCTIONS
@@ -95,6 +107,19 @@ app.get('/register', (req, res) => {
   res.render('registration', templateVars);
 });
 
+app.post('/register', (req, res) => {
+  const id = generateRandomString();
+  users[id] = {
+    id: id,
+    email: req.body.email,
+    password: req.body.password
+  };
+  console.log(users[id]);
+  res.cookie('user_id', id);
+  res.redirect('/urls');
+});
+
+//LISTEN FOR REQUESTS
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
