@@ -43,7 +43,6 @@ const users = {
 const generateRandomString = function() {
   return Math.random().toString(36).substring(2,8);
 };
-
 const checkEmailRegistered = function(email) {
   for (const user in users) {
     if (users[user].email === email) {
@@ -51,17 +50,7 @@ const checkEmailRegistered = function(email) {
     }
   }
   return false;
-}
-
-// TINY APP ROUTES
-app.get('/', (req, res) => {
-  res.redirect('/urls');
-});
-
-// app.get('/urls.json', (req, res) => {
-//   res.json(urlDatabase);
-// });
-
+};
 const getURLsByID = function(id) {
   let userURLs = {};
   for (url in urlDatabase) {
@@ -71,6 +60,15 @@ const getURLsByID = function(id) {
   }
   return userURLs;
 };
+
+// TINY APP ROUTES
+app.get('/', (req, res) => {
+  res.redirect('/urls');
+});
+
+// app.get('/urls.json', (req, res) => {
+//   res.json(urlDatabase);
+// });
 
 app.get('/urls', (req, res) => { // My URLs route
   const templateVars = {
@@ -94,7 +92,10 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
     res.redirect(403, '/login');
   } else {
     const shortURL = generateRandomString();
-    urlDatabase[shortURL] = req.body.longURL;
+    urlDatabase[shortURL] = {
+      longURL: req.body.longURL,
+      userID: req.cookies['user_id'] 
+    };
     res.redirect(`/urls/${shortURL}`);
   }
 });
