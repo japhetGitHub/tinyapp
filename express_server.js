@@ -45,14 +45,14 @@ app.get('/', (req, res) => {
 
 app.get('/urls', (req, res) => { // My URLs route
   const templateVars = {
-    username: req.cookies['username'],
+    user: users[req.cookies['user_id']],
     urls: urlDatabase
   };
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  const templateVars = { username: req.cookies['username'] };
+  const templateVars = { user: users[req.cookies['user_id']] };
   res.render("urls_new", templateVars);
 });
 
@@ -64,7 +64,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual URL summary page route
   const templateVars = {
-    username: req.cookies['username'],
+    user: users[req.cookies['user_id']],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
@@ -102,7 +102,7 @@ app.post('/logout', (req, res) => {
 
 app.get('/register', (req, res) => {
   const templateVars = {
-    username: undefined //undefined because user is not logged in if at registration form (also so that header partial will still work)
+    user: undefined //undefined because user is not logged in if at registration form (also so that header partial will still work)
   };
   res.render('registration', templateVars);
 });
