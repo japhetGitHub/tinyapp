@@ -122,7 +122,7 @@ app.post('/login', (req, res) => { //receives login form input
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 });
 
