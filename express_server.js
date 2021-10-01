@@ -126,7 +126,7 @@ app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
 });
 
 app.get("/u/:shortURL", (req, res) => { // URL redirect
-  const longURL = urlDatabase[req.params.shortURL];
+  const longURL = urlDatabase[req.params.shortURL].longURL;
   if (longURL) {
     res.redirect(longURL);
   } else {
