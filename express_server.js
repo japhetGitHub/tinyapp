@@ -12,9 +12,19 @@ app.use(cookieParser());
 app.set('view engine', 'ejs');
 
 //DATA STORE
+// const urlDatabase = {
+//   "b2xVn2": "http://www.lighthouselabs.ca",
+//   "9sm5xK": "http://www.google.com"
+// };
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+      longURL: "https://www.tsn.ca",
+      userID: "aJ48lW"
+  },
+  i3BoGr: {
+      longURL: "https://www.google.ca",
+      userID: "aJ48lW"
+  }
 };
 const users = { 
   "userRandomID": {
@@ -52,10 +62,20 @@ app.get('/', (req, res) => {
 //   res.json(urlDatabase);
 // });
 
+const getURLsByID = function(id) {
+  let userURLs = {};
+  for (url in urlDatabase) {
+    if (urlDatabase[url].userID === id) {
+      userURLs[url] = urlDatabase[url];
+    }
+  }
+  return userURLs;
+};
+
 app.get('/urls', (req, res) => { // My URLs route
   const templateVars = {
     user: users[req.cookies['user_id']],
-    urls: urlDatabase
+    urls: getURLsByID(req.cookies['user_id'])
   };
   res.render('urls_index', templateVars);
 });
