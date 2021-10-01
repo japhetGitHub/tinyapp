@@ -90,7 +90,7 @@ app.post('/logout', (req, res) => {
 
 app.get('/register', (req, res) => {
   const templateVars = {
-    username: undefined
+    username: undefined //undefined because user is not logged in if at registration form (also so that header partial will still work)
   };
   res.render('registration', templateVars);
 });
