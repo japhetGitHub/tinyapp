@@ -34,6 +34,15 @@ const generateRandomString = function() {
   return Math.random().toString(36).substring(2,8);
 };
 
+const checkEmailRegistered = function(email) {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // TINY APP ROUTES
 app.get('/', (req, res) => {
   res.redirect('/urls');
@@ -107,16 +116,26 @@ app.get('/register', (req, res) => {
   res.render('registration', templateVars);
 });
 
+
+
 app.post('/register', (req, res) => {
-  const id = generateRandomString();
-  users[id] = {
-    id: id,
-    email: req.body.email,
-    password: req.body.password
-  };
-  console.log(users[id]);
-  res.cookie('user_id', id);
-  res.redirect('/urls');
+  if (req.body.email === '' || req.body.password === '') {
+    // console.log('Empty fields.');
+    res.redirect(400, '/register');
+  } else if (checkEmailRegistered(req.body.email)) {
+    // console.log('Email Exists.');
+    res.redirect(400, '/register');
+  } else {
+    const id = generateRandomString();
+    users[id] = {
+      id: id,
+      email: req.body.email,
+      password: req.body.password
+    };
+    // console.log('User created.');
+    res.cookie('user_id', id);
+    res.redirect('/urls');
+  }
 });
 
 //LISTEN FOR REQUESTS
