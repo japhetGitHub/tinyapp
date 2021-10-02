@@ -6,7 +6,9 @@
     <% } else if (item === 'Register') { %>  
       - <a href="/register"> <%= item %> </a> 
     <% } else if (item === 'URLs') { %>  
-      - <a href="/urls"> <%= item %> </a> 
+      <% if (user !== undefined) { %>  
+        - <a href="/urls"> <%= item %> </a> 
+      <% } %>
     <% } else { %>
       <!-- - <a href="/urls">No Access</a> -->
       - <%= item %>
