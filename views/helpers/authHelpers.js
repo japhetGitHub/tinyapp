@@ -4,7 +4,6 @@ module.exports = function () {
   return (req, res, next) => {
     const whiteListRoutes = ['/', '/login', '/register'];
     const path = req.path;
-
     if (whiteListRoutes.includes(path)) {
       if(validateUser(req.session['user_id'], req.app.locals.users)) { // if valid logged in user tries to request login/request/'root' page redirect to /urls page
         return res.redirect('/urls');

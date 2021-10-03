@@ -18,16 +18,19 @@
   <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
-        <h5 class="card-title">TinyURL for: <%= longURL %></h5>
-        <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
-        <!-- <p class="card-text"><a href="/urls/new">Click Here to Shorten another URL!</a></p>         -->
+        <h5 class="card-title">TinyURL for: <%= urlData.longURL %></h5>
+        <p class="card-text">
+          Short URL: <a href=<%= `/u/${shortURL}` %> target="_blank" rel="noopener noreferrer"><%= shortURL %></a>
+        </p>
+        <p class="card-text">Visits: <%= urlData.visits %></p>
+        <p class="card-text">Created/Modified On: <%= urlData.created %></p>
       </div>
       <div class="card-footer text-muted">
         <h2>Edit</h2>
-        <form class="form-inline justify-content-center" action="/urls/<%= shortURL %> " method="POST">
+        <form class="form-inline justify-content-center" action=<%= `/urls/${shortURL}` %> method="POST">
           <div class="form-group mb-2">
             <label for="longURL">New URL:</label>
-            <input class="form-control" type="text" name="longURL" placeholder="<%= longURL %> " style="width: 300px; margin: 1em">
+            <input class="form-control" type="text" name="longURL" placeholder="<%= urlData.longURL %>" style="width: 300px; margin: 1em">
             <button type="submit" class="btn btn-primary">Submit</button>
           </div>
         </form>       
