@@ -76,7 +76,7 @@ const getErrorVars = function(code, ...options) {
     error_options: options
   };
 };
-const validUser = function(userID) { // needed as a security check incase user has old userid cookie but is no longer registered
+const validateUser = function(userID) { // needed as a security check incase user has old userid cookie but is no longer registered
   if(userID) { //short-circuit for undefined case to improve performance
     for(const user in users) {
       if (users[user].id === userID) { 
@@ -87,13 +87,35 @@ const validUser = function(userID) { // needed as a security check incase user h
   return false;
 };
 
+app.use((req, res, next) => {
+  const whiteListRoutes = ['/', '/login', '/register'];
+  const path = req.path;
+  const method = req.method;
+
+  if (whiteListRoutes.includes(path)) {
+    if(validateUser(req.cookies['user_id'])) { // if valid logged in user tries to request login/request/'root' page redirect to /urls page
+      return res.redirect('/urls');
+    }
+    res.clearCookie('user_id'); // clears old/invalid cookie
+    return next(); // else show login page
+  }
+  if (!validateUser(req.cookies['user_id'])) { // when 1. user_id cookie doesn't exist 2. or user_id cookie is invalid (i.e. using an old/modified user_id) redirect all requests
+    res.clearCookie('user_id'); // clears old/invalid cookie
+    return res.redirect('/login');
+  }
+  return next();
+});
+
 // TINY APP ROUTES
 app.get('/', (req, res) => {
-  if (req.cookies['user_id']) {
-    res.redirect('/login');
-  } else {
-    res.redirect('/urls');
-  }
+
+  res.redirect('/login');
+
+  // if (req.cookies['user_id']) {
+  //   res.redirect('/login');
+  // } else {
+  //   res.redirect('/urls');
+  // }
 });
 
 // app.get('/urls.json', (req, res) => {
@@ -101,7 +123,7 @@ app.get('/', (req, res) => {
 // });
 
 app.get('/urls', (req, res) => { // My URLs route
-  if (validUser(req.cookies['user_id']) === false) {
+  if (validateUser(req.cookies['user_id']) === false) {
     const templateVars = getErrorVars(403, 'Login', 'Register');
     res.render('urls_index', templateVars);
   } else {
@@ -115,7 +137,7 @@ app.get('/urls', (req, res) => { // My URLs route
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  if (validUser(req.cookies['user_id']) === false) {
+  if (validateUser(req.cookies['user_id']) === false) {
     const templateVars = getErrorVars(403, 'Login');
     res.render('urls_new', templateVars);
   } else {
@@ -128,7 +150,7 @@ app.get("/urls/new", (req, res) => { // Create New URL page route
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
-  if (validUser(req.cookies['user_id']) === false) {
+  if (validateUser(req.cookies['user_id']) === false) {
     const templateVars = getErrorVars(403, 'Login');
     res.render('urls_new', templateVars);
   } else {
@@ -142,7 +164,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 });
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
-  if (validUser(req.cookies['user_id']) === false) { //if user is not logged in they can't edit urls
+  if (validateUser(req.cookies['user_id']) === false) { //if user is not logged in they can't edit urls
     const templateVars = getErrorVars(403, 'Login', 'Register');
     res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(403, '/login');
@@ -163,11 +185,11 @@ app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info pag
 });
 
 app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
-  if (validUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist (incase logged out user tries to delete a nonexistent shortURL)
+  if (validateUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist (incase logged out user tries to delete a nonexistent shortURL)
     urlDatabase[req.params.shortURL].longURL = req.body.longURL;
     res.redirect('/urls');
   } else {
-    if(validUser(req.cookies['user_id'])) {
+    if(validateUser(req.cookies['user_id'])) {
       const templateVars = getErrorVars(403, 'Cannot Edit URL', "URLs");
       templateVars.user = users[req.cookies['user_id']];
 
@@ -180,11 +202,11 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
-  if (validUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist incase logged out user tries to delete a nonexistent shortURL
+  if (validateUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist incase logged out user tries to delete a nonexistent shortURL
     delete urlDatabase[req.params.shortURL];
     res.redirect('/urls');
   } else {
-    if(validUser(req.cookies['user_id'])) {
+    if(validateUser(req.cookies['user_id'])) {
       const templateVars = getErrorVars(403, 'Cannot Delete URL', "URLs");
       templateVars.user = users[req.cookies['user_id']];
 
@@ -211,7 +233,7 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
 });
 
 app.get('/login', (req, res) => {
-  if (validUser(req.cookies['user_id'])) { //checks that user is already logged in
+  if (validateUser(req.cookies['user_id'])) { //checks that user is already logged in
     res.redirect('/urls');
   } else {
     const templateVars = {
@@ -244,7 +266,7 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  if (validUser(req.cookies['user_id'])) {
+  if (validateUser(req.cookies['user_id'])) {
     res.redirect('/urls');
   } else {
     const templateVars = {
