@@ -1,17 +1,9 @@
-<h1 class="mt-5 display-1 text-center"><%= code %></h1>
-<h3 class="text-muted text-center"><%= error_message %>
-  <% for (const item of error_options) { %>
-    <% if (item === 'Login') { %>
-      - <a href="/login"> <%= item %> </a>
-    <% } else if (item === 'Register') { %>  
-      - <a href="/register"> <%= item %> </a> 
-    <% } else if (item === 'URLs') { %>  
-      <% if (user !== undefined) { %>  
-        - <a href="/urls"> <%= item %> </a> 
-      <% } %>
-    <% } else { %>
-      <!-- - <a href="/urls">No Access</a> -->
-      - <%= item %>
+<div class="my-3 mx-auto">
+  <span class="text-danger"><%= code %></span>
+  <span class="text-muted">
+    - <%= statusMessage %>
+    <% for (const item of error_options) { %>
+        - <%= item %>
     <% } %> 
-  <% } %> 
-</h3> 
+  </span>
+</div>
