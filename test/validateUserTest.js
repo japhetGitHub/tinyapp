@@ -4,27 +4,27 @@ const { validateUser } = require('../views/helpers/userHelpers');
 
 const testUsers = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
+    id: "userRandomID",
+    email: "user@example.com",
     password: "purple-monkey-dinosaur"
   },
   "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
+    id: "user2RandomID",
+    email: "user2@example.com",
     password: "dishwasher-funk"
   }
 };
 
 describe('validateUser', function() {
-  it('should return true given the userID is valid', function() {
+  it('should return true given the UID is valid', function() {
     assert.isTrue(validateUser("user2RandomID", testUsers));
   });
 
-  it('should return false given the userID is invalid', function() {
+  it('should return false given the UID is invalid', function() {
     assert.isFalse(validateUser("1userRandomID", testUsers));
   });
 
-  it('should return false given the userID is undefined', function() {
+  it('should return false given the UID is undefined', function() {
     assert.isFalse(validateUser(undefined, testUsers));
   });
 

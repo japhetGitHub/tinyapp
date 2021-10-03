@@ -3,8 +3,8 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
-var cookieSession = require('cookie-session')
-const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser } = require('./views/helpers/userHelpers');
+const cookieSession = require('cookie-session');
+const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars } = require('./views/helpers/userHelpers');
 const protectRoutes = require('./views/helpers/authHelpers');
 
 // MIDDLEWARE
@@ -19,12 +19,28 @@ app.use(protectRoutes());
 app.set('view engine', 'ejs');
 
 //DATA STORE
-app.locals.urlDatabase = {
 
+app.locals.urlDatabase = {
+  /**
+   * URL data of the form:
+      shortURL: {
+        longURL: "https://www.tsn.ca",
+        UID: "user1RandomID",
+        created: "Wed Sep 29 2021 - 5:08:27 PM",
+        visits: 0
+      }
+  */
 };
 
-app.locals.users = { 
-
+app.locals.users = {
+  /**
+   * User data of the form:
+      "userRandomID": {
+        id: "userRandomID",
+        email: "user@example.com",
+        password: "foo-bar-baz"
+      }
+  */
 };
 
 // TINY APP ROUTES
@@ -33,8 +49,8 @@ app.get('/', (req, res) => {
 });
 
 app.get('/urls', (req, res) => { // My URLs route
-  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['user_id']]);
-  templateVars.urls = urlsForUser(req.session['user_id'], req.app.locals.urlDatabase); // required for urls_index template 
+  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['userID']]);
+  templateVars.urls = urlsForUser(req.session['userID'], req.app.locals.urlDatabase); // required for urls_index template
   
   res.render('urls_index', templateVars);
 });
@@ -44,41 +60,41 @@ app.post("/urls", (req, res) => { // 'Create New URL' form submit route
 
   if (req.headers.referer) { // prevents a cURL with -L flag from redirecting this POST route repeatedly
     if (longURL === "") { // can be built out more for other invalid url cases (better to handle it in frontend for future)
-      const templateVars = getTemplateVars(400, req.app.locals.users[req.session['user_id']], 'Invalid URL');
+      const templateVars = getTemplateVars(400, req.app.locals.users[req.session['userID']], 'Invalid URL');
       return res.render('urls_new', templateVars);
     }
     const shortURL = generateRandomString();
     const date = new Date();
     req.app.locals.urlDatabase[shortURL] = {
       longURL: /^http:\/\//.test(longURL) ? longURL : `http://${longURL}`, //uses regex to add http:// to the link
-      userID: req.session['user_id'],
+      UID: req.session['userID'],
       created: `${date.toDateString()} - ${date.toLocaleTimeString()}`,
-      visits: 0 
+      visits: 0
     };
     return res.redirect(`/urls/${shortURL}`);
   }
-  return res.redirect(400, '/urls')
+  return res.redirect(400, '/urls');
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['user_id']]);
+  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['userID']]);
 
   res.render("urls_new", templateVars);
 });
 
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
-  if (Object.keys(urlsForUser(req.session['user_id'], req.app.locals.urlDatabase)).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
+  if (Object.keys(urlsForUser(req.session['userID'], req.app.locals.urlDatabase)).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
-      user: req.app.locals.users[req.session['user_id']],
+      user: req.app.locals.users[req.session['userID']],
       shortURL: req.params.shortURL,
       urlData: req.app.locals.urlDatabase[req.params.shortURL],
       code: 200
     };
     res.render('urls_show', templateVars);
   } else { //if user tried to access a short URL info page that didn't exist or they didn't have access to
-    const templateVars = getTemplateVars(403, req.app.locals.users[req.session['user_id']], 'Not One of Your URLs');
-    templateVars.urls = urlsForUser(req.session['user_id'], req.app.locals.urlDatabase); // required for urls_index template 
+    const templateVars = getTemplateVars(403, req.app.locals.users[req.session['userID']], 'Not One of Your URLs');
+    templateVars.urls = urlsForUser(req.session['userID'], req.app.locals.urlDatabase); // required for urls_index template
 
     res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
   }
@@ -88,7 +104,7 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
   const urlData = req.app.locals.urlDatabase[req.params.shortURL];
   
   if (urlData) {
-    if (req.session['user_id'] === urlData.userID) { // gatekeeps editing privilege
+    if (req.session['userID'] === urlData.UID) { // gatekeeps editing privilege
       urlData.longURL = /^http:\/\//.test(req.body.longURL) ? req.body.longURL : `http://${req.body.longURL}`; //uses regex to add http:// to the edited link;
       const date = new Date();
       urlData.created = `${date.toDateString()} - ${date.toLocaleTimeString()}`; //updates time b/c URL modified
@@ -107,7 +123,7 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
 app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
   const urlData = req.app.locals.urlDatabase[req.params.shortURL];
 
-  if (urlData && req.session['user_id'] === urlData.userID) { // gatekeeps delete privilege
+  if (urlData && req.session['userID'] === urlData.UID) { // gatekeeps delete privilege
     delete req.app.locals.urlDatabase[req.params.shortURL];
     return res.redirect('/urls');
   }
@@ -126,8 +142,8 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
   } else {
     const templateVars = getTemplateVars(400, undefined, "Invalid URL Requested");
 
-    if (req.app.locals.users[req.session['user_id']]) {
-      templateVars.user = req.app.locals.users[req.session['user_id']]; //ensure _header partial shows proper logged in/out status when rendering below
+    if (req.app.locals.users[req.session['userID']]) {
+      templateVars.user = req.app.locals.users[req.session['userID']]; //ensure _header partial shows proper logged in/out status when rendering below
     }
     res.render('url_dead', templateVars); //better UX than explicit 403 redirect call
   }
@@ -148,7 +164,7 @@ app.post('/login', (req, res) => { //receives login form input
     const templateVars = getTemplateVars(403, undefined, 'Incorrect Password');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
   } else { //successful login
-    req.session.user_id = registeredUser.id;
+    req.session.userID = registeredUser.id;
     res.redirect('/urls');
   }
 });
@@ -179,7 +195,7 @@ app.post('/register', (req, res) => { //receives registration form input
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, 10) // hasing password with bcryptjs
     };
-    req.session.user_id = id;
+    req.session.userID = id;
     res.redirect('/urls');
   }
 });

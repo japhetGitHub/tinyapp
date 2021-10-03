@@ -14,8 +14,8 @@ const checkEmailRegistered = function(email, users) {
 
 const urlsForUser = function(id, urlDatabase) {
   let userURLs = {};
-  for (url in urlDatabase) {
-    if (urlDatabase[url].userID === id) {
+  for (const url in urlDatabase) {
+    if (urlDatabase[url].UID === id) {
       userURLs[url] = urlDatabase[url];
     }
   }
@@ -26,24 +26,24 @@ const getTemplateVars = function(code, user, ...options) {
   let message;
   if (code === 200) {
     message = 'OK';
-  } else if(code === 403) {
+  } else if (code === 403) {
     message = 'Forbidden';
   } else if (code === 400) {
     message = 'Bad Request';
-  } 
+  }
 
-  return { 
+  return {
     user: user,
     code: code,
     statusMessage: message,
-    error_options: options
+    errorOptions: options
   };
 };
 
-const validateUser = function(userID, users) { // needed as a security check incase user has old userid cookie but is no longer registered
-  if(userID) { //short-circuit for undefined case to improve performance
-    for(const user in users) {
-      if (users[user].id === userID) { 
+const validateUser = function(UID, users) { // needed as a security check incase user has old UID cookie but is no longer registered
+  if (UID) { //short-circuit for undefined case to improve performance
+    for (const user in users) {
+      if (users[user].id === UID) {
         return true;
       }
     }
