@@ -25,7 +25,7 @@ describe('checkEmailRegistered', function() {
     };
     assert.deepEqual(user, expectedOutput);
   });
-  
+
   it('should return undefined with an invalid email', function() {
     const user = checkEmailRegistered("invalid@example.com", testUsers)
     assert.isUndefined(user);
