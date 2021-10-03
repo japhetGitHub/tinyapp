@@ -123,52 +123,61 @@ app.get('/', (req, res) => {
 // });
 
 app.get('/urls', (req, res) => { // My URLs route
-  if (validateUser(req.cookies['user_id']) === false) {
-    const templateVars = getErrorVars(403, 'Login', 'Register');
-    res.render('urls_index', templateVars);
-  } else {
-    const templateVars = {
-      user: users[req.cookies['user_id']],
-      urls: urlsForUser(req.cookies['user_id']),
-      code: 200
-    };
-    res.render('urls_index', templateVars);
-  }
+  // if (validateUser(req.cookies['user_id']) === false) {
+  //   const templateVars = getErrorVars(403, 'Login', 'Register');
+  //   res.render('urls_index', templateVars);
+  // } else {
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+    urls: urlsForUser(req.cookies['user_id']),
+    code: 200
+  };
+  res.render('urls_index', templateVars);
+  // }
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  if (validateUser(req.cookies['user_id']) === false) {
-    const templateVars = getErrorVars(403, 'Login');
-    res.render('urls_new', templateVars);
-  } else {
-    const templateVars = { 
-      user: users[req.cookies['user_id']],
-      code: 200
-    };
-    res.render("urls_new", templateVars);
-  }
+  // if (validateUser(req.cookies['user_id']) === false) {
+  //   const templateVars = getErrorVars(403, 'Login');
+  //   res.render('urls_new', templateVars);
+  // } else {
+  const templateVars = { 
+    user: users[req.cookies['user_id']],
+    code: 200
+  };
+  res.render("urls_new", templateVars);
+  // }
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
-  if (validateUser(req.cookies['user_id']) === false) {
-    const templateVars = getErrorVars(403, 'Login');
-    res.render('urls_new', templateVars);
-  } else {
+  // if (validateUser(req.cookies['user_id']) === false) {
+  //   const templateVars = getErrorVars(403, 'Login');
+  //   res.render('urls_new', templateVars);
+  // } else {
+
+  //SECURITY FLAW: when curl is run with -L flag it loops this redirect and keeps posting until overflow 
+  // example: curl -X POST -i --cookie "user_id=userRandomID" localhost:8080/urls/b6UTxQ
+  const longURL = req.body.longURL;
+  // console.log("referer:",req.headers);
+  if (req.headers.referer) { // prevents a cURL with -L flag from redirecting this POST route repeatedly
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = {
-      longURL: req.body.longURL,
+      longURL: longURL,
       userID: req.cookies['user_id'] 
     };
-    res.redirect(`/urls/${shortURL}`);
+    return res.redirect(`/urls/${shortURL}`);
   }
+  return res.redirect(409, '/urls')
+  // }
 });
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
-  if (validateUser(req.cookies['user_id']) === false) { //if user is not logged in they can't edit urls
-    const templateVars = getErrorVars(403, 'Login', 'Register');
-    res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
-    // res.redirect(403, '/login');
-  } else if (Object.keys(urlsForUser(req.cookies['user_id'])).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
+  // if (validateUser(req.cookies['user_id']) === false) { //if user is not logged in they can't edit urls
+  //   const templateVars = getErrorVars(403, 'Login', 'Register');
+  //   res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
+  //   // res.redirect(403, '/login');
+  // } else 
+  if (Object.keys(urlsForUser(req.cookies['user_id'])).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
       user: users[req.cookies['user_id']],
       shortURL: req.params.shortURL,
@@ -185,37 +194,70 @@ app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info pag
 });
 
 app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
-  if (validateUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist (incase logged out user tries to delete a nonexistent shortURL)
-    urlDatabase[req.params.shortURL].longURL = req.body.longURL;
-    res.redirect('/urls');
-  } else {
-    if(validateUser(req.cookies['user_id'])) {
-      const templateVars = getErrorVars(403, 'Cannot Edit URL', "URLs");
-      templateVars.user = users[req.cookies['user_id']];
+  const urlData = urlDatabase[req.params.shortURL];
 
-    } else {
-      const templateVars = getErrorVars(403, "Login", "Register");
+  if (urlData) {
+    if (req.cookies['user_id'] === urlData.userID) { // gatekeeps editing privilege
+      urlData.longURL = req.body.longURL;
+      return res.redirect('/urls');
+    } else {// handles when (valid) user submits the edit form on another user's url page (i.e. by maliciously swapping user_id cookies)
+      //EDIT: SECRITY FLAW THIS ALLOWS USER TO GAIN ACCESS TO ANOTHER PERSONS URLS res.cookie('user_id', urlData.userID); //resetting cookie for edge case where user tries to inject cookie to redirect to injected user's /urls
+      return res.redirect('/urls');
     }
-    res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
-    // res.redirect(403, '/urls');
+  } else { //false - shortURL isn't in Database
+    // handle when (valid) user tries to edit invalid/nonexistent url
+    // SECURITY FLAW: if a uses posts an edit for a nonexistent url but they have a valid userid then they will see all the urls.. say if they switched the userids then they see the new userids urls .. but its as if they logged out of their first account and logged into the second one. this seems fine but what if they got the cookie of the second valid user maliciously without knowing the username/password.  
+    return res.redirect('/urls');
   }
+  //SECURITY FLAW: doing res.redirect('/urls') enables user to maliciously gain access to the URL list of another valid user if they know the cookie. Unless cookies can be configured to be tamper-proof (i.e. not injectible) it seems impossible to prevent this case. 
+
+  //OLD IMPLEMENTATION
+  // if (validateUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist (incase logged out user tries to delete a nonexistent shortURL)
+  //   urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+  //   res.redirect('/urls');
+  // } else {
+  //   if(validateUser(req.cookies['user_id'])) {
+  //     const templateVars = getErrorVars(403, 'Cannot Edit URL', "URLs");
+  //     templateVars.user = users[req.cookies['user_id']];
+
+  //   } else {
+  //     const templateVars = getErrorVars(403, "Login", "Register");
+  //   }
+  //   res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
+  //   // res.redirect(403, '/urls');
+  // }
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
-  if (validateUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist incase logged out user tries to delete a nonexistent shortURL
-    delete urlDatabase[req.params.shortURL];
-    res.redirect('/urls');
-  } else {
-    if(validateUser(req.cookies['user_id'])) {
-      const templateVars = getErrorVars(403, 'Cannot Delete URL', "URLs");
-      templateVars.user = users[req.cookies['user_id']];
+  //SEE SECURITY CONCERNS FROM - POST /urls/:shortURL
+  const urlData = urlDatabase[req.params.shortURL];
 
+  if (urlData) {
+    if (req.cookies['user_id'] === urlData.userID) { // gatekeeps delete privilege
+      delete urlDatabase[req.params.shortURL];
+      return res.redirect('/urls');
     } else {
-      const templateVars = getErrorVars(403, "Login", "Register");
+      return res.redirect('/urls');
     }
-    res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
-    // res.redirect(403, '/urls');
+  } else {
+    return res.redirect('/urls');
   }
+  
+  // if (validateUser(req.cookies['user_id']) && urlDatabase[req.params.shortURL] && req.cookies['user_id'] === urlDatabase[req.params.shortURL].userID) { // checks that both exist incase logged out user tries to delete a nonexistent shortURL
+  //   delete urlDatabase[req.params.shortURL];
+  //   res.redirect('/urls');
+  // } else {
+  //   if(validateUser(req.cookies['user_id'])) {
+  //     const templateVars = getErrorVars(403, 'Cannot Delete URL', "URLs");
+  //     templateVars.user = users[req.cookies['user_id']];
+
+  //   } else {
+  //     const templateVars = getErrorVars(403, "Login", "Register");
+  //   }
+  //   res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
+  //   // res.redirect(403, '/urls');
+  // }
+
 });
 
 app.get("/u/:shortURL", (req, res) => { // URL redirect
@@ -233,15 +275,15 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
 });
 
 app.get('/login', (req, res) => {
-  if (validateUser(req.cookies['user_id'])) { //checks that user is already logged in
-    res.redirect('/urls');
-  } else {
-    const templateVars = {
-      user: undefined, //undefined when no user_id cookie exists and login form is requested
-      code: 200
-    };
-    res.render('login', templateVars);
-  }
+  // if (validateUser(req.cookies['user_id'])) { //checks that user is already logged in
+  //   res.redirect('/urls');
+  // } else {
+  const templateVars = {
+    user: undefined, //undefined when no user_id cookie exists and login form is requested
+    code: 200
+  };
+  res.render('login', templateVars);
+  // }
 });
 
 app.post('/login', (req, res) => { //receives login form input
@@ -266,15 +308,15 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/register', (req, res) => {
-  if (validateUser(req.cookies['user_id'])) {
-    res.redirect('/urls');
-  } else {
-    const templateVars = {
-      user: undefined, //undefined when no user_id cookie exists and registration form is requested
-      code: 200
-    };
-    res.render('registration', templateVars);
-  }
+  // if (validateUser(req.cookies['user_id'])) {
+  //   res.redirect('/urls');
+  // } else {
+  const templateVars = {
+    user: undefined, //undefined when no user_id cookie exists and registration form is requested
+    code: 200
+  };
+  res.render('registration', templateVars);
+  // }
 });
 
 app.post('/register', (req, res) => { //receives registration form input
