@@ -2,13 +2,16 @@ const express = require('express');
 const app = express();
 const PORT = 8080; // default port 8080
 const bcrypt = require('bcryptjs');
-const cookieParser = require('cookie-parser');
+var cookieSession = require('cookie-session')
 const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser } = require('./views/helpers/userHelpers');
 const protectRoutes = require('./views/helpers/authHelpers');
 
 // MIDDLEWARE
 app.use(express.urlencoded({extended: true}));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['some secret key to encrypt the session value', 'another one to allow for key rotation'],
+}));
 app.use(protectRoutes());
 
 //TEMPLATE ENGINE
@@ -36,32 +39,30 @@ app.get('/', (req, res) => {
 });
 
 app.get('/urls', (req, res) => { // My URLs route
-  const templateVars = getTemplateVars(200, req.app.locals.users[req.cookies['user_id']]);
-  templateVars.urls = urlsForUser(req.cookies['user_id'], req.app.locals.urlDatabase); // required for urls_index template 
+  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['user_id']]);
+  templateVars.urls = urlsForUser(req.session['user_id'], req.app.locals.urlDatabase); // required for urls_index template 
   
   res.render('urls_index', templateVars);
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
-  const templateVars = getTemplateVars(200, req.app.locals.users[req.cookies['user_id']]);
+  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['user_id']]);
 
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
-  //SECURITY FLAW: when curl is run with -L flag it loops this redirect and keeps posting until overflow 
-  // example: curl -X POST -i --cookie "user_id=userRandomID" localhost:8080/urls/b6UTxQ
   const longURL = req.body.longURL;
 
   if (req.headers.referer) { // prevents a cURL with -L flag from redirecting this POST route repeatedly
     if (longURL === "") { // can be built out more for other invalid url cases (better to handle it in frontend)
-      const templateVars = getTemplateVars(400, req.app.locals.users[req.cookies['user_id']], 'Invalid URL');
+      const templateVars = getTemplateVars(400, req.app.locals.users[req.session['user_id']], 'Invalid URL');
       return res.render('urls_new', templateVars);
     }
     const shortURL = generateRandomString();
     req.app.locals.urlDatabase[shortURL] = {
       longURL: /^http:\/\//.test(longURL) ? longURL : `http://${longURL}`, //uses regex to add http:// to the link
-      userID: req.cookies['user_id'] 
+      userID: req.session['user_id'] 
     };
     return res.redirect(`/urls/${shortURL}`);
   }
@@ -69,17 +70,17 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 });
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
-  if (Object.keys(urlsForUser(req.cookies['user_id'], req.app.locals.urlDatabase)).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
+  if (Object.keys(urlsForUser(req.session['user_id'], req.app.locals.urlDatabase)).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
-      user: req.app.locals.users[req.cookies['user_id']],
+      user: req.app.locals.users[req.session['user_id']],
       shortURL: req.params.shortURL,
       longURL: req.app.locals.urlDatabase[req.params.shortURL].longURL,
       code: 200
     };
     res.render('urls_show', templateVars);
   } else { //if user tried to access a short URL info page that didn't exist or they didn't have access to
-    const templateVars = getTemplateVars(403, req.app.locals.users[req.cookies['user_id']], 'Not One of Your URLs');
-    templateVars.urls = urlsForUser(req.cookies['user_id'], req.app.locals.urlDatabase); // required for urls_index template 
+    const templateVars = getTemplateVars(403, req.app.locals.users[req.session['user_id']], 'Not One of Your URLs');
+    templateVars.urls = urlsForUser(req.session['user_id'], req.app.locals.urlDatabase); // required for urls_index template 
 
     res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
   }
@@ -89,19 +90,16 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
   const urlData = req.app.locals.urlDatabase[req.params.shortURL];
   
   if (urlData) {
-    if (req.cookies['user_id'] === urlData.userID) { // gatekeeps editing privilege
+    if (req.session['user_id'] === urlData.userID) { // gatekeeps editing privilege
       urlData.longURL = /^http:\/\//.test(req.body.longURL) ? req.body.longURL : `http://${req.body.longURL}`; //uses regex to add http:// to the edited link;
       return res.redirect('/urls');
-    } else {// handles when (valid) user submits the edit form on another user's url page (i.e. by maliciously swapping user_id cookies)
-      //EDIT: SECRITY FLAW THIS ALLOWS USER TO GAIN ACCESS TO ANOTHER PERSONS URLS res.cookie('user_id', urlData.userID); //resetting cookie for edge case where user tries to inject cookie to redirect to injected user's /urls
+    } else {// handles when (valid) user submits the edit form on another user's url page (i.e. by maliciously swapping user_id cookies) ** consider refactoring - may not be needed b/c sessions.
       return res.redirect('/urls');
     }
   } else { //false - shortURL isn't in Database
     // handle when (valid) user tries to edit invalid/nonexistent url
-    // SECURITY FLAW: if a uses posts an edit for a nonexistent url but they have a valid userid then they will see all the urls.. say if they switched the userids then they see the new userids urls .. but its as if they logged out of their first account and logged into the second one. this seems fine but what if they got the cookie of the second valid user maliciously without knowing the username/password.  
     return res.redirect('/urls');
   }
-  //SECURITY FLAW: doing res.redirect('/urls') enables user to maliciously gain access to the URL list of another valid user if they know the cookie. Unless cookies can be configured to be tamper-proof (i.e. not injectible) it seems impossible to prevent this case. 
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
@@ -109,7 +107,7 @@ app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
   const urlData = req.app.locals.urlDatabase[req.params.shortURL];
 
   if (urlData) {
-    if (req.cookies['user_id'] === urlData.userID) { // gatekeeps delete privilege
+    if (req.session['user_id'] === urlData.userID) { // gatekeeps delete privilege
       delete req.app.locals.urlDatabase[req.params.shortURL];
       return res.redirect('/urls');
     } else {
@@ -130,8 +128,8 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
     }
   } else {
     const templateVars = getTemplateVars(400, undefined, "Invalid URL Requested");
-    if (req.app.locals.users[req.cookies['user_id']]) {
-      templateVars.user = req.app.locals.users[req.cookies['user_id']];
+    if (req.app.locals.users[req.session['user_id']]) {
+      templateVars.user = req.app.locals.users[req.session['user_id']];
     }
 
     res.render('url_dead', templateVars); //better UX than explicit 403 redirect call
@@ -153,13 +151,13 @@ app.post('/login', (req, res) => { //receives login form input
     const templateVars = getTemplateVars(403, undefined, 'Incorrect Password');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
   } else { //successful login
-    res.cookie('user_id', registeredUser.id);
+    req.session.user_id = registeredUser.id;
     res.redirect('/urls');
   }
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect('/');
 });
 
@@ -184,8 +182,7 @@ app.post('/register', (req, res) => { //receives registration form input
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, 10) // hasing password with bcryptjs
     };
-
-    res.cookie('user_id', id);
+    req.session.user_id = id;
     res.redirect('/urls');
   }
 });
