@@ -68,7 +68,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
     }
     const shortURL = generateRandomString();
     req.app.locals.urlDatabase[shortURL] = {
-      longURL: longURL,
+      longURL: /^http:\/\//.test(longURL) ? longURL : `http://${longURL}`, //uses regex to add http:// to the link
       userID: req.cookies['user_id'] 
     };
     return res.redirect(`/urls/${shortURL}`);
@@ -95,10 +95,10 @@ app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info pag
 
 app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
   const urlData = req.app.locals.urlDatabase[req.params.shortURL];
-
+  
   if (urlData) {
     if (req.cookies['user_id'] === urlData.userID) { // gatekeeps editing privilege
-      urlData.longURL = req.body.longURL;
+      urlData.longURL = /^http:\/\//.test(req.body.longURL) ? req.body.longURL : `http://${req.body.longURL}`; //uses regex to add http:// to the edited link;
       return res.redirect('/urls');
     } else {// handles when (valid) user submits the edit form on another user's url page (i.e. by maliciously swapping user_id cookies)
       //EDIT: SECRITY FLAW THIS ALLOWS USER TO GAIN ACCESS TO ANOTHER PERSONS URLS res.cookie('user_id', urlData.userID); //resetting cookie for edge case where user tries to inject cookie to redirect to injected user's /urls
@@ -192,7 +192,7 @@ app.post('/register', (req, res) => { //receives registration form input
       email: req.body.email,
       password: req.body.password
     };
-    
+
     res.cookie('user_id', id);
     res.redirect('/urls');
   }
