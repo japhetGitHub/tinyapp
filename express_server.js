@@ -60,19 +60,20 @@ const urlsForUser = function(id) {
   }
   return userURLs;
 };
-const getErrorVars = function(code, ...options) {
-  let message = '';
-  if(code === 403) {
+const getTemplateVars = function(code, user, ...options) {
+  let message;
+  if (code === 200) {
+    message = 'OK';
+  } else if(code === 403) {
     message = 'Forbidden';
   } else if (code === 400) {
     message = 'Bad Request';
-  } else {
-    message = 'Not Found';
-  }
+  } 
+
   return { 
-    user: undefined,
+    user: user,
     code: code,
-    error_message: message,
+    statusMessage: message,
     error_options: options
   };
 };
@@ -99,6 +100,9 @@ app.use((req, res, next) => {
     res.clearCookie('user_id'); // clears old/invalid cookie
     return next(); // else show login page
   }
+  if (/^\/u\//.test(path)) { //a regex to check if req.path starts with /u/ (i.e. is a shortURL)
+    return next();
+  }
   if (!validateUser(req.cookies['user_id'])) { // when 1. user_id cookie doesn't exist 2. or user_id cookie is invalid (i.e. using an old/modified user_id) redirect all requests
     res.clearCookie('user_id'); // clears old/invalid cookie
     return res.redirect('/login');
@@ -124,34 +128,37 @@ app.get('/', (req, res) => {
 
 app.get('/urls', (req, res) => { // My URLs route
   // if (validateUser(req.cookies['user_id']) === false) {
-  //   const templateVars = getErrorVars(403, 'Login', 'Register');
+  //   const templateVars = getTemplateVars(403, 'Login', 'Register');
   //   res.render('urls_index', templateVars);
   // } else {
-  const templateVars = {
-    user: users[req.cookies['user_id']],
-    urls: urlsForUser(req.cookies['user_id']),
-    code: 200
-  };
+  // const templateVars = {
+  //   user: users[req.cookies['user_id']],
+  //   urls: urlsForUser(req.cookies['user_id']),
+  //   code: 200
+  // };
+  const templateVars = getTemplateVars(200, users[req.cookies['user_id']]);
+  templateVars.urls = urlsForUser(req.cookies['user_id']); // required for urls_index template 
   res.render('urls_index', templateVars);
   // }
 });
 
 app.get("/urls/new", (req, res) => { // Create New URL page route
   // if (validateUser(req.cookies['user_id']) === false) {
-  //   const templateVars = getErrorVars(403, 'Login');
+  //   const templateVars = getTemplateVars(403, 'Login');
   //   res.render('urls_new', templateVars);
   // } else {
-  const templateVars = { 
-    user: users[req.cookies['user_id']],
-    code: 200
-  };
+  // const templateVars = { 
+  //   user: users[req.cookies['user_id']],
+  //   code: 200
+  // };
+  const templateVars = getTemplateVars(200, users[req.cookies['user_id']]);
   res.render("urls_new", templateVars);
   // }
 });
 
 app.post("/urls", (req, res) => { // Create New URL form submit route
   // if (validateUser(req.cookies['user_id']) === false) {
-  //   const templateVars = getErrorVars(403, 'Login');
+  //   const templateVars = getTemplateVars(403, 'Login');
   //   res.render('urls_new', templateVars);
   // } else {
 
@@ -160,6 +167,10 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
   const longURL = req.body.longURL;
   // console.log("referer:",req.headers);
   if (req.headers.referer) { // prevents a cURL with -L flag from redirecting this POST route repeatedly
+    if (longURL === "") { // can be built out more for other invalid url cases (better to handle it in frontend)
+      const templateVars = getTemplateVars(400, users[req.cookies['user_id']], 'Invalid URL');
+      return res.render('urls_new', templateVars);
+    }
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = {
       longURL: longURL,
@@ -173,7 +184,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
   // if (validateUser(req.cookies['user_id']) === false) { //if user is not logged in they can't edit urls
-  //   const templateVars = getErrorVars(403, 'Login', 'Register');
+  //   const templateVars = getTemplateVars(403, 'Login', 'Register');
   //   res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
   //   // res.redirect(403, '/login');
   // } else 
@@ -186,9 +197,10 @@ app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info pag
     };
     res.render('urls_show', templateVars);
   } else { //if user tried to access a short URL info page that didn't exist or they didn't have access to
-    const templateVars = getErrorVars(403, 'Not One of Your URLs', "URLs");
-    templateVars.user = users[req.cookies['user_id']]; // user is technically logged in but just forbidden access 
-    res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
+    const templateVars = getTemplateVars(403, users[req.cookies['user_id']], 'Not One of Your URLs');
+    templateVars.urls = urlsForUser(req.cookies['user_id']); // required for urls_index template 
+    // templateVars.user = users[req.cookies['user_id']]; // user is technically logged in but just forbidden access 
+    res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
     // res.redirect('/urls');
   }
 });
@@ -217,11 +229,11 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
   //   res.redirect('/urls');
   // } else {
   //   if(validateUser(req.cookies['user_id'])) {
-  //     const templateVars = getErrorVars(403, 'Cannot Edit URL', "URLs");
+  //     const templateVars = getTemplateVars(403, 'Cannot Edit URL', "URLs");
   //     templateVars.user = users[req.cookies['user_id']];
 
   //   } else {
-  //     const templateVars = getErrorVars(403, "Login", "Register");
+  //     const templateVars = getTemplateVars(403, "Login", "Register");
   //   }
   //   res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
   //   // res.redirect(403, '/urls');
@@ -248,11 +260,11 @@ app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
   //   res.redirect('/urls');
   // } else {
   //   if(validateUser(req.cookies['user_id'])) {
-  //     const templateVars = getErrorVars(403, 'Cannot Delete URL', "URLs");
+  //     const templateVars = getTemplateVars(403, 'Cannot Delete URL', "URLs");
   //     templateVars.user = users[req.cookies['user_id']];
 
   //   } else {
-  //     const templateVars = getErrorVars(403, "Login", "Register");
+  //     const templateVars = getTemplateVars(403, "Login", "Register");
   //   }
   //   res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
   //   // res.redirect(403, '/urls');
@@ -269,8 +281,11 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
       res.redirect('/urls');
     }
   } else {
-    const templateVars = getErrorVars(400, "URL doesn't exist");
-    res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
+    const templateVars = getTemplateVars(400, undefined, "Invalid URL Requested");
+    if (users[req.cookies['user_id']]) {
+      templateVars.user = users[req.cookies['user_id']];
+    }
+    res.render('url_dead', templateVars); //better UX than explicit 403 redirect call
   }
 });
 
@@ -278,10 +293,11 @@ app.get('/login', (req, res) => {
   // if (validateUser(req.cookies['user_id'])) { //checks that user is already logged in
   //   res.redirect('/urls');
   // } else {
-  const templateVars = {
-    user: undefined, //undefined when no user_id cookie exists and login form is requested
-    code: 200
-  };
+  // const templateVars = {
+  //   user: undefined, //undefined when no user_id cookie exists and login form is requested
+  //   code: 200
+  // };
+  const templateVars = getTemplateVars(200, undefined);
   res.render('login', templateVars);
   // }
 });
@@ -289,11 +305,11 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => { //receives login form input
   const registeredUser = checkEmailRegistered(req.body.email); //returns user object if email exists or false if not
   if (!registeredUser) { //user not found
-    const templateVars = getErrorVars(403, 'User Not Found', 'Login', "Register");
+    const templateVars = getTemplateVars(403, undefined, 'User Not Found');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(403, '/login');
   } else if (registeredUser.password !== req.body.password) { //incorrect password
-    const templateVars = getErrorVars(403, 'Incorrect Password', 'Login');
+    const templateVars = getTemplateVars(403, undefined, 'Incorrect Password');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(403, '/login');
   } else { //successful login
@@ -311,10 +327,11 @@ app.get('/register', (req, res) => {
   // if (validateUser(req.cookies['user_id'])) {
   //   res.redirect('/urls');
   // } else {
-  const templateVars = {
-    user: undefined, //undefined when no user_id cookie exists and registration form is requested
-    code: 200
-  };
+  // const templateVars = {
+  //   user: undefined, //undefined when no user_id cookie exists and registration form is requested
+  //   code: 200
+  // };
+  const templateVars = getTemplateVars(200, undefined);
   res.render('registration', templateVars);
   // }
 });
@@ -322,12 +339,12 @@ app.get('/register', (req, res) => {
 app.post('/register', (req, res) => { //receives registration form input
   if (req.body.email === '' || req.body.password === '') {
     // console.log('Empty fields.');
-    const templateVars = getErrorVars(400, 'Empty Fields', 'Register');
+    const templateVars = getTemplateVars(400, undefined, 'Empty Fields');
     res.render('registration', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(400, '/register');
   } else if (checkEmailRegistered(req.body.email)) {
     // console.log('Email Exists.');
-    const templateVars = getErrorVars(400, 'Email Already Registered', 'Login');
+    const templateVars = getTemplateVars(400, undefined, 'Email Already Registered');
     res.render('registration', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(400, '/register');
   } else {
