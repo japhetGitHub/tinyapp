@@ -9,7 +9,7 @@ const checkEmailRegistered = function(email, users) {
       return users[user];
     }
   }
-  return false;
+  return undefined;
 };
 
 const urlsForUser = function(id, urlDatabase) {
