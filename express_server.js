@@ -1,13 +1,14 @@
 const express = require('express');
 const app = express();
 const PORT = 8080; // default port 8080
+const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
 var cookieSession = require('cookie-session')
 const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser } = require('./views/helpers/userHelpers');
 const protectRoutes = require('./views/helpers/authHelpers');
 
 // MIDDLEWARE
-app.use(express.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
   keys: ['some secret key to encrypt the session value', 'another one to allow for key rotation'],
@@ -19,27 +20,11 @@ app.set('view engine', 'ejs');
 
 //DATA STORE
 app.locals.urlDatabase = {
-  // b6UTxQ: {
-  //     longURL: "https://www.tsn.ca",
-  //     userID: "aJ48lW"
-  // },
-  // i3BoGr: {
-  //     longURL: "https://www.google.ca",
-  //     userID: "aJ48lW"
-  // }
+
 };
 
 app.locals.users = { 
-//   "userRandomID": {
-//     id: "userRandomID", 
-//     email: "user@example.com", 
-//     password: "purple-monkey-dinosaur"
-//   },
-//  "user2RandomID": {
-//     id: "user2RandomID", 
-//     email: "user2@example.com", 
-//     password: "dishwasher-funk"
-//   }
+
 };
 
 // TINY APP ROUTES
@@ -64,7 +49,7 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
   const longURL = req.body.longURL;
 
   if (req.headers.referer) { // prevents a cURL with -L flag from redirecting this POST route repeatedly
-    if (longURL === "") { // can be built out more for other invalid url cases (better to handle it in frontend)
+    if (longURL === "") { // can be built out more for other invalid url cases (better to handle it in frontend for future)
       const templateVars = getTemplateVars(400, req.app.locals.users[req.session['user_id']], 'Invalid URL');
       return res.render('urls_new', templateVars);
     }
