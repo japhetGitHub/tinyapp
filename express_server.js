@@ -3,7 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
-
+const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser } = require('./views/helpers/userHelpers');
 // MIDDLEWARE
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -39,62 +39,13 @@ const users = {
   }
 };
 
-//HELPER FUNCTIONS
-const generateRandomString = function() {
-  return Math.random().toString(36).substring(2,8);
-};
-const checkEmailRegistered = function(email) {
-  for (const user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return false;
-};
-const urlsForUser = function(id) {
-  let userURLs = {};
-  for (url in urlDatabase) {
-    if (urlDatabase[url].userID === id) {
-      userURLs[url] = urlDatabase[url];
-    }
-  }
-  return userURLs;
-};
-const getTemplateVars = function(code, user, ...options) {
-  let message;
-  if (code === 200) {
-    message = 'OK';
-  } else if(code === 403) {
-    message = 'Forbidden';
-  } else if (code === 400) {
-    message = 'Bad Request';
-  } 
-
-  return { 
-    user: user,
-    code: code,
-    statusMessage: message,
-    error_options: options
-  };
-};
-const validateUser = function(userID) { // needed as a security check incase user has old userid cookie but is no longer registered
-  if(userID) { //short-circuit for undefined case to improve performance
-    for(const user in users) {
-      if (users[user].id === userID) { 
-        return true;
-      }
-    }
-  }
-  return false;
-};
-
 app.use((req, res, next) => {
   const whiteListRoutes = ['/', '/login', '/register'];
   const path = req.path;
   const method = req.method;
 
   if (whiteListRoutes.includes(path)) {
-    if(validateUser(req.cookies['user_id'])) { // if valid logged in user tries to request login/request/'root' page redirect to /urls page
+    if(validateUser(req.cookies['user_id'], users)) { // if valid logged in user tries to request login/request/'root' page redirect to /urls page
       return res.redirect('/urls');
     }
     res.clearCookie('user_id'); // clears old/invalid cookie
@@ -103,7 +54,7 @@ app.use((req, res, next) => {
   if (/^\/u\//.test(path)) { //a regex to check if req.path starts with /u/ (i.e. is a shortURL)
     return next();
   }
-  if (!validateUser(req.cookies['user_id'])) { // when 1. user_id cookie doesn't exist 2. or user_id cookie is invalid (i.e. using an old/modified user_id) redirect all requests
+  if (!validateUser(req.cookies['user_id'], users)) { // when 1. user_id cookie doesn't exist 2. or user_id cookie is invalid (i.e. using an old/modified user_id) redirect all requests
     res.clearCookie('user_id'); // clears old/invalid cookie
     return res.redirect('/login');
   }
@@ -137,7 +88,7 @@ app.get('/urls', (req, res) => { // My URLs route
   //   code: 200
   // };
   const templateVars = getTemplateVars(200, users[req.cookies['user_id']]);
-  templateVars.urls = urlsForUser(req.cookies['user_id']); // required for urls_index template 
+  templateVars.urls = urlsForUser(req.cookies['user_id'], urlDatabase); // required for urls_index template 
   res.render('urls_index', templateVars);
   // }
 });
@@ -188,7 +139,7 @@ app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info pag
   //   res.render('urls_show', templateVars); //better UX than explicit 403 redirect call
   //   // res.redirect(403, '/login');
   // } else 
-  if (Object.keys(urlsForUser(req.cookies['user_id'])).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
+  if (Object.keys(urlsForUser(req.cookies['user_id'], urlDatabase)).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
       user: users[req.cookies['user_id']],
       shortURL: req.params.shortURL,
@@ -198,7 +149,7 @@ app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info pag
     res.render('urls_show', templateVars);
   } else { //if user tried to access a short URL info page that didn't exist or they didn't have access to
     const templateVars = getTemplateVars(403, users[req.cookies['user_id']], 'Not One of Your URLs');
-    templateVars.urls = urlsForUser(req.cookies['user_id']); // required for urls_index template 
+    templateVars.urls = urlsForUser(req.cookies['user_id'], urlDatabase); // required for urls_index template 
     // templateVars.user = users[req.cookies['user_id']]; // user is technically logged in but just forbidden access 
     res.render('urls_index', templateVars); //better UX than explicit 403 redirect call
     // res.redirect('/urls');
@@ -303,7 +254,7 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => { //receives login form input
-  const registeredUser = checkEmailRegistered(req.body.email); //returns user object if email exists or false if not
+  const registeredUser = checkEmailRegistered(req.body.email, users); //returns user object if email exists or false if not
   if (!registeredUser) { //user not found
     const templateVars = getTemplateVars(403, undefined, 'User Not Found');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
@@ -342,7 +293,7 @@ app.post('/register', (req, res) => { //receives registration form input
     const templateVars = getTemplateVars(400, undefined, 'Empty Fields');
     res.render('registration', templateVars); //better UX than explicit 403 redirect call
     // res.redirect(400, '/register');
-  } else if (checkEmailRegistered(req.body.email)) {
+  } else if (checkEmailRegistered(req.body.email, users)) {
     // console.log('Email Exists.');
     const templateVars = getTemplateVars(400, undefined, 'Email Already Registered');
     res.render('registration', templateVars); //better UX than explicit 403 redirect call
