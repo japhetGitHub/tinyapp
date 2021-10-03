@@ -39,13 +39,7 @@ app.get('/urls', (req, res) => { // My URLs route
   res.render('urls_index', templateVars);
 });
 
-app.get("/urls/new", (req, res) => { // Create New URL page route
-  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['user_id']]);
-
-  res.render("urls_new", templateVars);
-});
-
-app.post("/urls", (req, res) => { // Create New URL form submit route
+app.post("/urls", (req, res) => { // 'Create New URL' form submit route
   const longURL = req.body.longURL;
 
   if (req.headers.referer) { // prevents a cURL with -L flag from redirecting this POST route repeatedly
@@ -54,21 +48,31 @@ app.post("/urls", (req, res) => { // Create New URL form submit route
       return res.render('urls_new', templateVars);
     }
     const shortURL = generateRandomString();
+    const date = new Date();
     req.app.locals.urlDatabase[shortURL] = {
       longURL: /^http:\/\//.test(longURL) ? longURL : `http://${longURL}`, //uses regex to add http:// to the link
-      userID: req.session['user_id'] 
+      userID: req.session['user_id'],
+      created: `${date.toDateString()} - ${date.toLocaleTimeString()}`,
+      visits: 0 
     };
     return res.redirect(`/urls/${shortURL}`);
   }
-  return res.redirect(409, '/urls')
+  return res.redirect(400, '/urls')
 });
+
+app.get("/urls/new", (req, res) => { // Create New URL page route
+  const templateVars = getTemplateVars(200, req.app.locals.users[req.session['user_id']]);
+
+  res.render("urls_new", templateVars);
+});
+
 
 app.get('/urls/:shortURL', (req, res) => { // Show individual short URL info page route
   if (Object.keys(urlsForUser(req.session['user_id'], req.app.locals.urlDatabase)).includes(req.params.shortURL)) { //checks if requested shortURL was made by this user
     const templateVars = {
       user: req.app.locals.users[req.session['user_id']],
       shortURL: req.params.shortURL,
-      longURL: req.app.locals.urlDatabase[req.params.shortURL].longURL,
+      urlData: req.app.locals.urlDatabase[req.params.shortURL],
       code: 200
     };
     res.render('urls_show', templateVars);
@@ -86,8 +90,12 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
   if (urlData) {
     if (req.session['user_id'] === urlData.userID) { // gatekeeps editing privilege
       urlData.longURL = /^http:\/\//.test(req.body.longURL) ? req.body.longURL : `http://${req.body.longURL}`; //uses regex to add http:// to the edited link;
+      const date = new Date();
+      urlData.created = `${date.toDateString()} - ${date.toLocaleTimeString()}`; //updates time b/c URL modified
+      urlData.visits = 0;
       return res.redirect('/urls');
-    } else {// handles when (valid) user submits the edit form on another user's url page (i.e. by maliciously swapping user_id cookies) ** consider refactoring - may not be needed b/c sessions.
+    } else {
+      // handles when (valid) user submits the edit form on another user's url page (i.e. by maliciously swapping session and session.sig)
       return res.redirect('/urls');
     }
   } else { //false - shortURL isn't in Database
@@ -97,35 +105,30 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
 });
 
 app.post('/urls/:shortURL/delete', (req, res) => { // Delete URL
-  //SEE SECURITY CONCERNS FROM - POST /urls/:shortURL
   const urlData = req.app.locals.urlDatabase[req.params.shortURL];
 
-  if (urlData) {
-    if (req.session['user_id'] === urlData.userID) { // gatekeeps delete privilege
-      delete req.app.locals.urlDatabase[req.params.shortURL];
-      return res.redirect('/urls');
-    } else {
-      return res.redirect('/urls');
-    }
-  } else {
+  if (urlData && req.session['user_id'] === urlData.userID) { // gatekeeps delete privilege
+    delete req.app.locals.urlDatabase[req.params.shortURL];
     return res.redirect('/urls');
   }
+  return res.redirect('/urls');
 });
 
 app.get("/u/:shortURL", (req, res) => { // URL redirect
   if (Object.keys(req.app.locals.urlDatabase).includes(req.params.shortURL)) {
     const longURL = req.app.locals.urlDatabase[req.params.shortURL].longURL;
     if (longURL) { // ensures user can't crash the system by inputting an undefined longURL
+      req.app.locals.urlDatabase[req.params.shortURL].visits += 1;
       res.redirect(longURL);
     } else {
       res.redirect('/urls');
     }
   } else {
     const templateVars = getTemplateVars(400, undefined, "Invalid URL Requested");
-    if (req.app.locals.users[req.session['user_id']]) {
-      templateVars.user = req.app.locals.users[req.session['user_id']];
-    }
 
+    if (req.app.locals.users[req.session['user_id']]) {
+      templateVars.user = req.app.locals.users[req.session['user_id']]; //ensure _header partial shows proper logged in/out status when rendering below
+    }
     res.render('url_dead', templateVars); //better UX than explicit 403 redirect call
   }
 });
@@ -151,7 +154,7 @@ app.post('/login', (req, res) => { //receives login form input
 });
 
 app.post('/logout', (req, res) => {
-  req.session = null;
+  req.session = null; //destroys the session
   res.redirect('/');
 });
 
