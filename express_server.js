@@ -4,6 +4,7 @@ const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
+// const url = require('url');
 const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars } = require('./views/helpers/userHelpers');
 const protectRoutes = require('./views/helpers/authHelpers');
 
@@ -150,12 +151,63 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
 });
 
 app.get('/login', (req, res) => {
-  const templateVars = getTemplateVars(200, undefined);
+  ///login/:type(/vars/)
+  // if (!req.locals.code) {
+  //   console.log('here');
+  //   res.render('login', templateVars);
+  // }
+  // console.log("params:", req.params);
+  // console.log("query:", req.query);
+  // console.log("converted:", Buffer.from(req.query, 'base64').toString('ascii'));
+  console.log('In plain login.');
+  console.log(req.query);
+  console.log("STRINGIFIED:" + JSON.stringify(req.query));
+  console.log('str:', req.query.str);
+  console.log('debuffed:', Buffer.from(req.query.str ? req.query.str : "", 'base64').toString('ascii'));
+
+  // var search = Buffer.from(req.query.str ? req.query.str : "", 'base64').toString('ascii');
   
+  // // from https://stackoverflow.com/questions/8648892/how-to-convert-url-parameters-to-a-javascript-object
+  // var result = !search ? "try again" : JSON.parse('{"' + search.replace(/&/g, '","').replace(/=/g,'":"') + '"}', function(key, value) { return key===""?value:decodeURIComponent(value) });
+  // console.log(result);
+  
+  const templateVars = getTemplateVars(200, undefined); // default case
+
+  let unbase64d = Buffer.from(req.query.str ? req.query.str : "", 'base64').toString('ascii'); //reverse the base64 encoding
+  if(unbase64d) {
+    const shapedText = unbase64d.replace(/&/g, '","').replace(/=/g, '":"'); //regex replace all (global) & with , and = with :
+    const reviver = (key, value) => {
+      if(key === "") { 
+        return value;
+      } else {
+        return decodeURIComponent(value); // for all 'values' except when value = the whole object (i.e. when key = "") transform the values by unencoding them (i.e. replacing %20 with space, etc.)
+      }
+    }
+    console.log("shapedText:",shapedText);
+    const queryParams = JSON.parse(`"{"${shapedText}"}"`, reviver);
+    templateVars.code = queryParams.code;
+    templateVars.statusMessage = queryParams.msg;
+    templateVars.user = queryParams.user;
+  }
+
+  // JSON.parse('{"' + search.replace(/&/g, '","').replace(/=/g,'":"') + '"}', function(key, value) { return key===""?value:decodeURIComponent(value) });
+  // console.log('decoubuffed:', decodeURIComponent(Buffer.from(req.query.str ? req.query.str : "", 'base64').toString('ascii')));
+  // console.log('trythis:', JSONdecodeURIComponent(Buffer.from(req.query.str ? req.query.str : "", 'base64').toString('ascii')).msg);
+  // console.log(Buffer.from(req.query.str ? req.query.str : "", 'base64').toString('ascii'));
+
   res.render('login', templateVars);
 });
 
+// app.get('/login/:vars', (req, res) => {
+
+//   console.log("params:", req.params);
+//   console.log("query:", req.query);
+//   console.log("vars:", req.params.vars);
+//   res.redirect('/login');
+// });
+
 app.post('/login', (req, res) => { //receives login form input
+  console.log(req.headers);
   const registeredUser = checkEmailRegistered(req.body.email, req.app.locals.users); //returns user object if email exists or false if not
   if (!registeredUser) { //user not found
     const templateVars = getTemplateVars(403, undefined, 'User Not Found');
