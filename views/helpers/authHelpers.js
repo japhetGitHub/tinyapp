@@ -20,5 +20,5 @@ module.exports = function () {
       return res.redirect('/login');
     }
     return next();
-}
+  }
 };
