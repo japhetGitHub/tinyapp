@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const PORT = 8080; // default port 8080
+const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser } = require('./views/helpers/userHelpers');
 const protectRoutes = require('./views/helpers/authHelpers');
@@ -26,16 +27,7 @@ app.locals.urlDatabase = {
 };
 
 app.locals.users = { 
-  "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
-  },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
-    password: "dishwasher-funk"
-  }
+
 };
 
 // TINY APP ROUTES
@@ -157,7 +149,7 @@ app.post('/login', (req, res) => { //receives login form input
   if (!registeredUser) { //user not found
     const templateVars = getTemplateVars(403, undefined, 'User Not Found');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
-  } else if (registeredUser.password !== req.body.password) { //incorrect password
+  } else if (!bcrypt.compareSync(req.body.password, registeredUser.password)) { //check incorrect password with bcryptjs
     const templateVars = getTemplateVars(403, undefined, 'Incorrect Password');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
   } else { //successful login
@@ -190,7 +182,7 @@ app.post('/register', (req, res) => { //receives registration form input
     req.app.locals.users[id] = {
       id: id,
       email: req.body.email,
-      password: req.body.password
+      password: bcrypt.hashSync(req.body.password, 10) // hasing password with bcryptjs
     };
 
     res.cookie('user_id', id);
