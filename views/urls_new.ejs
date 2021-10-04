@@ -1,34 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <title>New URL - TinyApp</title>
-  </head>
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
+  <link rel="manifest" href="favicon_io/site.webmanifest">
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+    integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
 
-  <body>
-    <%- include('partials/_header') %>
+  <title>New URL - TinyApp</title>
+</head>
 
-    <main style="margin: 1em;">
-      <h3>Create TinyURL</h3>
-      <form class="form-inline" action="/urls" method="POST">
-        <div class="form-group mb-2 mt-1">
-          <label for="longURL">Enter a URL:</label>
-          <input class="form-control ml-2" type="text" name="longURL" placeholder="http://" style="width: 300px;">
-          <button type="submit" class="btn btn-primary ml-2">Submit</button>
+<body style="background-color: rgb(202, 187, 168);">
+  <%- include('partials/_header') %>
+
+    <main class="container">
+      <div class="row">
+        <div class="col-1"></div>
+        <h3 class="col-sm-12 text-center">Create TinyURL</h3>
+        <div class="col-1"></div>
+      </div>
+      <div class="row text-center">
+        <div class="col-3"></div>
+        <form class="form-inline col" action="/urls" method="POST">
+          <div class="form-group mb-2 mt-1">
+            <label for="longURL">Enter a URL:</label>
+            <input class="form-control ml-2" type="text" name="longURL" placeholder="http://" style="width: 300px;">
+            <button type="submit" class="btn btn-outline-secondary ml-2" style="z-index: 1;">Submit</button>
+          </div>
+        </form>
+        <div class="col-4"></div>
+      </div>
+      <div class="row">
+        <div class="col-4"></div>
+        <div class="col-8">
+          <% if (code>= 400 && code < 500) { %>
+              <%- include('partials/_error.ejs') %>
+                <% } %>
         </div>
-      </form>
-      <% if (code >= 400 && code < 500) { %>
-        <%- include('partials/_error.ejs') %> 
-      <% } %>
+        <div class="col-4"></div>
+      </div>
     </main>
-      <!-- Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-  </body>
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+      crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+      crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+      integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+      crossorigin="anonymous"></script>
+</body>
+
 </html>
