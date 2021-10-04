@@ -8,6 +8,7 @@ const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars
 const protectRoutes = require('./views/helpers/authHelpers');
 
 // MIDDLEWARE
+app.use(express.static(__dirname+'/public'));
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
   name: 'session',
