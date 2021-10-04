@@ -7,9 +7,7 @@ This web app securely manages user sessions with the cookie-session and bcryptjs
 ## Final Product
 
 !["Screenshot of login page"](https://github.com/japhetGitHub/tinyapp/blob/master/docs/login_page.png?raw=true)
-
 !["Screenshot of URLs page"](https://github.com/japhetGitHub/tinyapp/blob/master/docs/urls_index.png?raw=true)
-
 !["Screenshot of URL info/edit page"](https://github.com/japhetGitHub/tinyapp/blob/master/docs/url_show_info.png?raw=true)
 
 ## Dependencies
