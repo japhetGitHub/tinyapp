@@ -29,11 +29,13 @@ const getTemplateVars = (code, user, ...options) => {
   let message;
   if (code === 200) {
     message = 'OK';
-  } else if (code === 403) {
-    message = 'Forbidden';
   } else if (code === 400) {
     message = 'Bad Request';
-  }
+  } else if (code === 401) {
+    message = 'Unauthorized';
+  } else if (code === 403) {
+    message = 'Forbidden';
+  } 
 
   return {
     user: user,

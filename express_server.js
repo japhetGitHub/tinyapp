@@ -149,13 +149,13 @@ app.get("/u/:shortURL", (req, res) => { // URL redirect
 });
 
 app.get('/login', (req, res) => {
-  const templateVars = getTemplateVars(200, undefined);
-  
+  //middleware populates req.body(.code & .msg) to display an error message to the user if they try to access /urls(/:id) without logging in. 
+  const templateVars = getTemplateVars(req.body.code || 200, undefined, req.body.msg); 
   res.render('login', templateVars);
 });
 
 app.post('/login', (req, res) => { //receives login form input
-  const registeredUser = checkEmailRegistered(req.body.email, req.app.locals.users); //returns user object if email exists or false if not
+  const registeredUser = checkEmailRegistered(req.body.email, req.app.locals.users); //returns user object if email exists or undefined if not
   if (!registeredUser) { //user not found
     const templateVars = getTemplateVars(403, undefined, 'User Not Found');
     res.render('login', templateVars); //better UX than explicit 403 redirect call
