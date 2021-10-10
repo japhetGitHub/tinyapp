@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 
-const { urlsForUser } = require('../views/helpers/userHelpers');
+const { urlsForUser } = require('../helpers/userHelpers');
 
 const testURL = {
   shortURL1: {

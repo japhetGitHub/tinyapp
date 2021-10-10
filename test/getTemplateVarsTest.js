@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 
-const { getTemplateVars } = require('../views/helpers/userHelpers');
+const { getTemplateVars } = require('../helpers/userHelpers');
 
 const testUsers = {
   "userRandomID": {

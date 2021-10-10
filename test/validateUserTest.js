@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 
-const { validateUser } = require('../views/helpers/userHelpers');
+const { validateUser } = require('../helpers/userHelpers');
 
 const testUsers = {
   "userRandomID": {

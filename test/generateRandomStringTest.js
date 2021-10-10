@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 
-const { generateRandomString } = require('../views/helpers/userHelpers');
+const { generateRandomString } = require('../helpers/userHelpers');
 
 describe('generateRandomString', function() {
   it('should return a non-empty string', function() {

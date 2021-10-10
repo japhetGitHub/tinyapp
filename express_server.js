@@ -4,8 +4,8 @@ const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
-const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars } = require('./views/helpers/userHelpers');
-const protectRoutes = require('./views/helpers/authHelpers');
+const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars } = require('./helpers/userHelpers');
+const protectRoutes = require('./helpers/authHelpers');
 
 // MIDDLEWARE
 app.use(express.static(__dirname+'/public'));
