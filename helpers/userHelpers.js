@@ -1,6 +1,11 @@
 //HELPER FUNCTIONS
 const generateRandomString = () => Math.random().toString(36).substring(2, 8);
 
+const retrieveDateStr = () => {
+  const date = new Date();
+  return `${date.toDateString()} - ${date.toLocaleTimeString()}`;
+}
+
 const checkEmailRegistered = (email, users) => {
   for (const user in users) {
     if (users[user].email === email) {
@@ -49,4 +54,4 @@ const validateUser = (UID, users) => {
   return false;
 };
 
-module.exports = { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser };
+module.exports = { generateRandomString, retrieveDateStr, checkEmailRegistered, urlsForUser, getTemplateVars, validateUser };

@@ -4,7 +4,7 @@ const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
-const { generateRandomString, checkEmailRegistered, urlsForUser, getTemplateVars } = require('./helpers/userHelpers');
+const { generateRandomString, retrieveDateStr, checkEmailRegistered, urlsForUser, getTemplateVars } = require('./helpers/userHelpers');
 const protectRoutes = require('./helpers/authHelpers');
 
 // MIDDLEWARE
@@ -65,11 +65,10 @@ app.post("/urls", (req, res) => { // 'Create New URL' form submit route
       return res.render('urls_new', templateVars);
     }
     const shortURL = generateRandomString();
-    const date = new Date();
     req.app.locals.urlDatabase[shortURL] = {
       longURL: /^http:\/\//.test(longURL) ? longURL : `http://${longURL}`, //uses regex to add http:// to the link
       UID: req.session['userID'],
-      created: `${date.toDateString()} - ${date.toLocaleTimeString()}`,
+      created: retrieveDateStr(),
       visits: 0
     };
     return res.redirect(`/urls/${shortURL}`);
@@ -107,8 +106,7 @@ app.post('/urls/:shortURL', (req, res) => { // Update/Edit URL
   if (urlData) {
     if (req.session['userID'] === urlData.UID) { // gatekeeps editing privilege
       urlData.longURL = /^http:\/\//.test(req.body.longURL) ? req.body.longURL : `http://${req.body.longURL}`; //uses regex to add http:// to the edited link;
-      const date = new Date();
-      urlData.created = `${date.toDateString()} - ${date.toLocaleTimeString()}`; //updates time b/c URL modified
+      urlData.created = retrieveDateStr(); //updates time b/c URL modified
       urlData.visits = 0;
       return res.redirect('/urls');
     } else {
