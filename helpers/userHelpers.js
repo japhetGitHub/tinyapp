@@ -1,9 +1,7 @@
 //HELPER FUNCTIONS
-const generateRandomString = function() {
-  return Math.random().toString(36).substring(2,8);
-};
+const generateRandomString = () => Math.random().toString(36).substring(2, 8);
 
-const checkEmailRegistered = function(email, users) {
+const checkEmailRegistered = (email, users) => {
   for (const user in users) {
     if (users[user].email === email) {
       return users[user];
@@ -12,7 +10,7 @@ const checkEmailRegistered = function(email, users) {
   return undefined;
 };
 
-const urlsForUser = function(id, urlDatabase) {
+const urlsForUser = (id, urlDatabase) => {
   let userURLs = {};
   for (const url in urlDatabase) {
     if (urlDatabase[url].UID === id) {
@@ -22,7 +20,7 @@ const urlsForUser = function(id, urlDatabase) {
   return userURLs;
 };
 
-const getTemplateVars = function(code, user, ...options) {
+const getTemplateVars = (code, user, ...options) => {
   let message;
   if (code === 200) {
     message = 'OK';
@@ -40,7 +38,7 @@ const getTemplateVars = function(code, user, ...options) {
   };
 };
 
-const validateUser = function(UID, users) { // needed as a security check incase user has old UID cookie but is no longer registered
+const validateUser = (UID, users) => {
   if (UID) { //short-circuit for undefined case to improve performance
     for (const user in users) {
       if (users[user].id === UID) {
